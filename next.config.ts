@@ -21,6 +21,10 @@ const firebasePublicEnv = {
     process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? process.env.FIREBASE_APP_ID ?? "",
   NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID:
     process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID ?? process.env.FIREBASE_MEASUREMENT_ID ?? "",
+  // Same issue: the project provides GOOGLE_MAPS_API_KEY (no NEXT_PUBLIC_ prefix),
+  // so the client-side Places script never received it in production.
+  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? process.env.GOOGLE_MAPS_API_KEY ?? "",
 };
 
 const nextConfig: NextConfig = {

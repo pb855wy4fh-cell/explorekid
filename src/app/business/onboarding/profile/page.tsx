@@ -239,7 +239,7 @@ export default function BusinessProfileOnboardingPage() {
       {googleMapsApiKey ? (
         <Script
           id="google-maps"
-          src={`https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places`}
+          src={`https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places&loading=async`}
           strategy="afterInteractive"
           onLoad={() => {
             console.log("Google Script Loaded:", !!window.google?.maps?.places);
