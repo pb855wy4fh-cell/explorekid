@@ -1,9 +1,9 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-const firebaseConfig = {
+const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -13,15 +13,20 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-const app =
-  getApps().length > 0
-    ? getApp()
-    : firebaseConfig.apiKey
-    ? initializeApp(firebaseConfig)
-    : null;
+// Fail loudly on misconfiguration. Returning an empty object here previously
+// caused Auth calls to throw the misleading "_getRecaptchaConfig is not a
+// function" error instead of surfacing the real "config missing at build" cause.
+if (!firebaseConfig.apiKey) {
+  throw new Error(
+    "Missing Firebase configuration: NEXT_PUBLIC_FIREBASE_* environment variables must be present at build time. " +
+      "On Vercel these are mapped from FIREBASE_* in next.config.ts."
+  );
+}
 
-export const auth = app ? getAuth(app) : ({} as ReturnType<typeof getAuth>);
-export const db = app ? getFirestore(app) : ({} as ReturnType<typeof getFirestore>);
-export const storage = app ? getStorage(app) : ({} as ReturnType<typeof getStorage>);
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 export default app;
