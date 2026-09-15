@@ -13,15 +13,27 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+const hasFirebaseConfig = Object.values(firebaseConfig).every(
+  (value) => typeof value === "string" && value.length > 0
+);
+
 const app =
   getApps().length > 0
     ? getApp()
-    : firebaseConfig.apiKey
-    ? initializeApp(firebaseConfig)
-    : null;
+    : hasFirebaseConfig
+      ? initializeApp(firebaseConfig)
+      : null;
 
-export const auth = app ? getAuth(app) : ({} as ReturnType<typeof getAuth>);
-export const db = app ? getFirestore(app) : ({} as ReturnType<typeof getFirestore>);
-export const storage = app ? getStorage(app) : ({} as ReturnType<typeof getStorage>);
+export function ensureFirebaseConfigured() {
+  if (!app || !hasFirebaseConfig) {
+    throw new Error(
+      "Firebase is not configured. Add the NEXT_PUBLIC_FIREBASE_* environment variables in Vercel and redeploy."
+    );
+  }
+}
+
+export const auth = app ? getAuth(app) : (undefined as unknown as ReturnType<typeof getAuth>);
+export const db = app ? getFirestore(app) : (undefined as unknown as ReturnType<typeof getFirestore>);
+export const storage = app ? getStorage(app) : (undefined as unknown as ReturnType<typeof getStorage>);
 
 export default app;

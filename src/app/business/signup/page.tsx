@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { FirebaseError } from "firebase/app";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, serverTimestamp, writeBatch } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, ensureFirebaseConfigured } from "@/lib/firebase";
 
 export default function BusinessSignupPage() {
   const router = useRouter();
@@ -30,6 +30,12 @@ export default function BusinessSignupPage() {
     setError("");
 
     try {
+      ensureFirebaseConfigured();
+
+      if (!auth || !db) {
+        throw new Error("Firebase authentication and Firestore are not available.");
+      }
+
       const credentials = await createUserWithEmailAndPassword(auth, email, password);
       const user = credentials.user;
       const businessId = Date.now().toString();

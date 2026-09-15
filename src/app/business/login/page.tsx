@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FirebaseError } from "firebase/app";
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, ensureFirebaseConfigured } from "@/lib/firebase";
 
 export default function BusinessLoginPage() {
   const router = useRouter();
@@ -24,6 +24,12 @@ export default function BusinessLoginPage() {
     setLoading(true);
 
     try {
+      ensureFirebaseConfigured();
+
+      if (!auth) {
+        throw new Error("Firebase authentication is not available.");
+      }
+
       await signInWithEmailAndPassword(auth, email.trim(), password);
       router.push("/dashboard");
     } catch (err: unknown) {
@@ -58,6 +64,12 @@ export default function BusinessLoginPage() {
 
     setIsResetting(true);
     try {
+      ensureFirebaseConfigured();
+
+      if (!auth) {
+        throw new Error("Firebase authentication is not available.");
+      }
+
       await sendPasswordResetEmail(auth, businessEmail);
       setError(null);
       setResetSuccess("Password reset link sent! Please check your inbox (and junk/spam folder).");
