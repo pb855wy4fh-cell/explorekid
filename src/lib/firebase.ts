@@ -1,9 +1,9 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-const firebaseConfig = {
+const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -17,6 +17,10 @@ const hasFirebaseConfig = Object.values(firebaseConfig).every(
   (value) => typeof value === "string" && value.length > 0
 );
 
+// Initialize lazily and never throw at module load: prerender/SSR imports this
+// file during the build, where a top-level throw would fail the whole build.
+// The NEXT_PUBLIC_FIREBASE_* values are mapped from FIREBASE_* in next.config.ts,
+// so hasFirebaseConfig is true in real (client/server) runtime.
 const app =
   getApps().length > 0
     ? getApp()
@@ -24,10 +28,12 @@ const app =
       ? initializeApp(firebaseConfig)
       : null;
 
+// Call this at the top of any handler that uses Firebase to fail loudly with a
+// clear message if configuration is genuinely missing at runtime.
 export function ensureFirebaseConfigured() {
   if (!app || !hasFirebaseConfig) {
     throw new Error(
-      "Firebase is not configured. Add the NEXT_PUBLIC_FIREBASE_* environment variables in Vercel and redeploy."
+      "Firebase is not configured. Ensure the FIREBASE_* environment variables are set in Vercel (they are exposed to the client as NEXT_PUBLIC_FIREBASE_* via next.config.ts) and redeploy."
     );
   }
 }
