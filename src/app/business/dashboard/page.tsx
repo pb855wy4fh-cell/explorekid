@@ -16,7 +16,7 @@ import {
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, ensureFirebaseConfigured } from "@/lib/firebase";
 
 type ApprovalStatus = "under_review" | "approved" | "rejected";
 type Tier = "free" | "paid" | "";
@@ -71,6 +71,14 @@ export default function BusinessDashboardPage() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   useEffect(() => {
+    try {
+      ensureFirebaseConfigured();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Firebase is not configured.");
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.replace("/business/login");

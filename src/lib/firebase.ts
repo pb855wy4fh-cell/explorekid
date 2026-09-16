@@ -13,20 +13,33 @@ const firebaseConfig: FirebaseOptions = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Fail loudly on misconfiguration. Returning an empty object here previously
-// caused Auth calls to throw the misleading "_getRecaptchaConfig is not a
-// function" error instead of surfacing the real "config missing at build" cause.
-if (!firebaseConfig.apiKey) {
-  throw new Error(
-    "Missing Firebase configuration: NEXT_PUBLIC_FIREBASE_* environment variables must be present at build time. " +
-      "On Vercel these are mapped from FIREBASE_* in next.config.ts."
-  );
+const hasFirebaseConfig = Object.values(firebaseConfig).every(
+  (value) => typeof value === "string" && value.length > 0
+);
+
+// Initialize lazily and never throw at module load: prerender/SSR imports this
+// file during the build, where a top-level throw would fail the whole build.
+// The NEXT_PUBLIC_FIREBASE_* values are mapped from FIREBASE_* in next.config.ts,
+// so hasFirebaseConfig is true in real (client/server) runtime.
+const app =
+  getApps().length > 0
+    ? getApp()
+    : hasFirebaseConfig
+      ? initializeApp(firebaseConfig)
+      : null;
+
+// Call this at the top of any handler that uses Firebase to fail loudly with a
+// clear message if configuration is genuinely missing at runtime.
+export function ensureFirebaseConfigured() {
+  if (!app || !hasFirebaseConfig) {
+    throw new Error(
+      "Firebase is not configured. Ensure the FIREBASE_* environment variables are set in Vercel (they are exposed to the client as NEXT_PUBLIC_FIREBASE_* via next.config.ts) and redeploy."
+    );
+  }
 }
 
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+export const auth = app ? getAuth(app) : (undefined as unknown as ReturnType<typeof getAuth>);
+export const db = app ? getFirestore(app) : (undefined as unknown as ReturnType<typeof getFirestore>);
+export const storage = app ? getStorage(app) : (undefined as unknown as ReturnType<typeof getStorage>);
 
 export default app;

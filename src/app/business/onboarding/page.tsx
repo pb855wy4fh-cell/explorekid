@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { FirebaseError } from "firebase/app";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, writeBatch } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, ensureFirebaseConfigured } from "@/lib/firebase";
 
 type Tier = "free" | "paid";
 
@@ -18,6 +18,14 @@ export default function BusinessOnboardingPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    try {
+      ensureFirebaseConfigured();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Firebase is not configured.");
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.replace("/business/login");

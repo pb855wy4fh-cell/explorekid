@@ -8,9 +8,20 @@ import { FirebaseError } from "firebase/app";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { auth, db, storage } from "@/lib/firebase";
+import { auth, db, storage, ensureFirebaseConfigured } from "@/lib/firebase";
 
-const categoryOptions = ["Activities & Classes", "Arts & Crafts", "Education", "Indoor Play", "Outdoor Recreation", "Sports & Fitness"];
+const categoryOptions = [
+  "Activities & Classes",
+  "Arts & Craft",
+  "Education & Learning",
+  "Indoor Play",
+  "Outdoor Recreation",
+  "Sports and Fitness",
+  "Baby & Toddler",
+  "Camps & Seasonal Programs",
+  "Parties & Events",
+  "Home & Family Services",
+];
 const ageRanges = ["0-1.5", "1.5-3", "3-5", "5-12", "12-18"];
 
 type GooglePlace = {
@@ -68,6 +79,14 @@ export default function BusinessProfileOnboardingPage() {
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   useEffect(() => {
+    try {
+      ensureFirebaseConfigured();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Firebase is not configured.");
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.replace("/business/login");
@@ -115,18 +134,25 @@ export default function BusinessProfileOnboardingPage() {
 
     const autocomplete = new Autocomplete(input, {
       fields: ["formatted_address", "name", "place_id", "geometry"],
-      types: ["geocode"],
+      types: ["address"],
     });
+
     autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace();
-      const formattedAddress = place.formatted_address ?? place.name;
+      const formattedAddress = place.formatted_address ?? place.name ?? "";
+
       if (!formattedAddress) {
         return;
       }
+
       setLocation(formattedAddress);
       setPlaceDetails(
         place.place_id && place.geometry?.location
-          ? { placeId: place.place_id, lat: place.geometry.location.lat(), lng: place.geometry.location.lng() }
+          ? {
+              placeId: place.place_id,
+              lat: place.geometry.location.lat(),
+              lng: place.geometry.location.lng(),
+            }
           : null
       );
     });
@@ -281,7 +307,21 @@ export default function BusinessProfileOnboardingPage() {
                 <Field label="Business Email" type="email" value={email} onChange={setEmail} disabled={submitting} required />
                 <SelectField label="Main Business Category" value={mainCategory} onChange={setMainCategory} disabled={submitting} />
                 <SelectField label="Secondary Business Category" value={secondaryCategory} onChange={setSecondaryCategory} disabled={submitting} />
-                <label className="block text-sm font-semibold text-slate-700">Business Location <span className="text-rose-600">*</span><input ref={locationInputRef} type="text" value={location} onChange={(event) => { setLocation(event.target.value); setPlaceDetails(null); }} disabled={submitting} className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-normal outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-200" placeholder="Start typing an address, city, or county" /></label>
+                <label className="block text-sm font-semibold text-slate-700">
+                  Business Location <span className="text-rose-600">*</span>
+                  <input
+                    ref={locationInputRef}
+                    type="text"
+                    value={location}
+                    onChange={(event) => {
+                      setLocation(event.target.value);
+                      setPlaceDetails(null);
+                    }}
+                    disabled={submitting}
+                    className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-normal outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-200"
+                    placeholder={googleMapsLoaded ? "Start typing a street address" : "Enter your business address"}
+                  />
+                </label>
                 <Field label="Business Phone" type="tel" value={phone} onChange={setPhone} disabled={submitting} required />
               </div>
 
